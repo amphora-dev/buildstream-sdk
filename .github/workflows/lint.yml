@@ -1,0 +1,24 @@
+name: lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: |
+        sudo apt-get update
+        sudo apt-get install -y shellcheck
+        shellcheck scripts/*.sh bin/bst
+        bash -n scripts/*.sh bin/bst
+    - name: Parse YAML
+      run: |
+        python3 - <<'PY'
+        import pathlib
+        import yaml
+        for path in [pathlib.Path("project.conf"), *pathlib.Path("elements").rglob("*.bst"), *pathlib.Path(".github/workflows").glob("*.yml")]:
+            yaml.safe_load(path.read_text())
+        PY

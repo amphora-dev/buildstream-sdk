@@ -1,0 +1,95 @@
+name: build-host-sdk
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+    - "config/**"
+    - "scripts/build-host-sdk.sh"
+    - ".github/workflows/build-host-sdk.yml"
+  pull_request:
+    branches: [main]
+    paths:
+    - "config/**"
+    - "scripts/build-host-sdk.sh"
+    - ".github/workflows/build-host-sdk.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install generator dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          apparmor-profiles apparmor-utils bubblewrap xz-utils
+        sudo install -m 0644 \
+          /usr/share/apparmor/extra-profiles/bwrap-userns-restrict \
+          /etc/apparmor.d/bwrap-userns-restrict
+        sudo apparmor_parser -r /etc/apparmor.d/bwrap-userns-restrict
+
+    - uses: actions/cache@v4
+      with:
+        path: ~/.cache/amphora-host-sdk
+        key: ubuntu-base-24.04.4-amd64
+
+    - name: Build locked SDK
+      env:
+        OUTPUT_DIR: ${{ github.workspace }}/artifacts
+      run: bash scripts/build-host-sdk.sh
+
+    - name: Verify SDK
+      run: |
+        source config/host-sdk.lock
+        (
+          cd artifacts
+          sha256sum -c "$SDK_NAME.sha256"
+        )
+        tar -tJf "artifacts/$SDK_NAME" >/dev/null
+        tar -xOJf "artifacts/$SDK_NAME" \
+          ./usr/share/imagefs-host-sdk/dpkg-manifest.txt |
+          grep -q $'^gcc\t'
+        tar -xOJf "artifacts/$SDK_NAME" \
+          ./usr/share/imagefs-host-sdk/pip-manifest.txt |
+          grep -q "^meson==$MESON_VERSION$"
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: host-sdk
+        path: artifacts/*
+        if-no-files-found: error
+        retention-days: 14
+
+    - name: Publish immutable SDK Release
+      if: github.ref == 'refs/heads/main'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        source config/host-sdk.lock
+        if gh release view "$SDK_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          actual=$(gh release view "$SDK_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json assets \
+            --jq ".assets[] | select(.name==\"$SDK_NAME\") | .digest")
+          test "$actual" = "sha256:$SDK_SHA256" || {
+            echo "immutable release $SDK_TAG has unexpected digest: $actual" >&2
+            exit 1
+          }
+          echo "Release $SDK_TAG already exists with expected digest."
+          exit 0
+        fi
+        gh release create "$SDK_TAG" \
+          --repo "$GITHUB_REPOSITORY" \
+          --target "$GITHUB_SHA" \
+          --title "$SDK_TAG" \
+          --notes "Immutable Amphora BuildStream host SDK ($SDK_SHA256)." \
+          "artifacts/$SDK_NAME" \
+          "artifacts/$SDK_NAME.sha256" \
+          artifacts/host-sdk-dpkg-manifest.txt \
+          artifacts/host-sdk-pip-manifest.txt

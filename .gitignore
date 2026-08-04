@@ -1,0 +1,4 @@
+/artifacts/
+*.tar.xz
+*.sha256
+__pycache__/
