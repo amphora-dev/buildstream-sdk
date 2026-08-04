@@ -46,4 +46,6 @@ if [ -n "${GITHUB_PATH:-}" ]; then
 fi
 
 printf 'BuildStream %s installed in %s\n' "$BST_VERSION" "$TOOLS_ROOT"
+# $PATH is intentionally emitted for the caller to expand.
+# shellcheck disable=SC2016
 printf 'export PATH=%q:%q:$PATH\n' "$VENV/bin" "$BIN"

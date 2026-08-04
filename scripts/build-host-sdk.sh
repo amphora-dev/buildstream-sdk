@@ -53,6 +53,8 @@ tar --no-same-owner -xzf "$base_archive" -C "$rootfs"
 install -Dm 0644 /etc/ssl/certs/ca-certificates.crt \
     "$rootfs/etc/ssl/certs/ca-certificates.crt"
 
+# The single-quoted payload expands variables inside the bwrap sandbox.
+# shellcheck disable=SC2016
 bwrap \
     --unshare-all \
     --share-net \
