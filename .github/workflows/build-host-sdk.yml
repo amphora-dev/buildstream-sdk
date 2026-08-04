@@ -55,10 +55,10 @@ jobs:
         tar -tJf "artifacts/$SDK_NAME" >/dev/null
         tar -xOJf "artifacts/$SDK_NAME" \
           ./usr/share/imagefs-host-sdk/dpkg-manifest.txt |
-          grep -q $'^gcc\t'
+          grep $'^gcc\t' >/dev/null
         tar -xOJf "artifacts/$SDK_NAME" \
           ./usr/share/imagefs-host-sdk/pip-manifest.txt |
-          grep -q "^meson==$MESON_VERSION$"
+          grep "^meson==$MESON_VERSION$" >/dev/null
 
     - uses: actions/upload-artifact@v4
       with:

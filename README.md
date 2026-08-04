@@ -13,14 +13,15 @@ Shared, immutable BuildStream foundations for Amphora repositories.
 The host SDK Release is immutable:
 
 ```text
-tag: host-sdk-noble-amd64-94277669
-asset: host-sdk-noble-amd64-94277669.tar.xz
-sha256: 942776693e88cdc95a93e2e9b351e75f3a8be1fddfa1b85d3081787946852af3
+tag: host-sdk-noble-amd64-20260804
+asset: host-sdk-noble-amd64-20260804.tar.xz
+sha256: 8fc9db6a51633409728a5cb0caa3b0d9e9685e7167c15a2987b3da021eb94918
 ```
 
-`config/host-sdk.lock` fails closed if Ubuntu packages, pip packages or
-generated files drift. Updating the SDK requires reviewing the dpkg/pip
-manifests and publishing a new tag; existing Releases are never overwritten.
+`config/host-sdk.lock` pins the Ubuntu snapshot, base archive, Meson wheel and
+final archive. It fails closed if any generated content drifts. Updating the
+SDK requires reviewing the dpkg/pip manifests and publishing a new tag;
+existing Releases are never overwritten.
 
 ## Consume as a junction
 

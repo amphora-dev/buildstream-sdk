@@ -17,7 +17,9 @@ source "$LOCK_FILE"
 : "${SDK_NAME:?missing SDK_NAME in $LOCK_FILE}"
 : "${SDK_SHA256:?missing SDK_SHA256 in $LOCK_FILE}"
 : "${UBUNTU_BASE_SHA256:?missing UBUNTU_BASE_SHA256 in $LOCK_FILE}"
+: "${UBUNTU_SNAPSHOT:?missing UBUNTU_SNAPSHOT in $LOCK_FILE}"
 : "${MESON_VERSION:?missing MESON_VERSION in $LOCK_FILE}"
+: "${MESON_SHA256:?missing MESON_SHA256 in $LOCK_FILE}"
 
 for tool in bwrap curl sha256sum tar xz; do
     command -v "$tool" >/dev/null || {
@@ -46,6 +48,10 @@ trap 'chmod -R u+rwX "$work" 2>/dev/null || true; rm -rf "$work"' EXIT
 rootfs="$work/rootfs"
 mkdir -p "$rootfs"
 tar --no-same-owner -xzf "$base_archive" -C "$rootfs"
+# Ubuntu Base intentionally omits the CA bundle. Seed it only to bootstrap the
+# HTTPS snapshot; the pinned ca-certificates package replaces this file.
+install -Dm 0644 /etc/ssl/certs/ca-certificates.crt \
+    "$rootfs/etc/ssl/certs/ca-certificates.crt"
 
 bwrap \
     --unshare-all \
@@ -60,8 +66,18 @@ bwrap \
     --setenv HOME /root \
     --setenv LC_ALL C.UTF-8 \
     --setenv DEBIAN_FRONTEND noninteractive \
+    --setenv UBUNTU_SNAPSHOT "$UBUNTU_SNAPSHOT" \
     --setenv MESON_VERSION "$MESON_VERSION" \
+    --setenv MESON_SHA256 "$MESON_SHA256" \
     /bin/bash -euxo pipefail -c '
+        cat > /etc/apt/sources.list.d/ubuntu.sources <<EOF
+Types: deb
+URIs: https://snapshot.ubuntu.com/ubuntu/$UBUNTU_SNAPSHOT/
+Suites: noble noble-updates noble-security noble-backports
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+Check-Valid-Until: no
+EOF
         cat > /usr/sbin/policy-rc.d <<EOF
 #!/bin/sh
 exit 101
@@ -70,10 +86,14 @@ EOF
         apt-get -o APT::Sandbox::User=root update
         apt-get -o APT::Sandbox::User=root \
             install -y --no-install-recommends "$@"
+        printf "meson==%s --hash=sha256:%s\n" \
+            "$MESON_VERSION" "$MESON_SHA256" |
         python3 -m pip install \
             --break-system-packages \
             --no-cache-dir \
-            "meson==$MESON_VERSION"
+            --only-binary=:all: \
+            --require-hashes \
+            -r /dev/stdin
         rm -f /usr/sbin/policy-rc.d
         apt-get clean
         rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*.deb

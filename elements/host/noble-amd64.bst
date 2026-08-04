@@ -8,6 +8,6 @@ description: |
 
 sources:
 - kind: tar
-  url: sdk-release:host-sdk-noble-amd64-94277669/host-sdk-noble-amd64-94277669.tar.xz
-  ref: 942776693e88cdc95a93e2e9b351e75f3a8be1fddfa1b85d3081787946852af3
+  url: sdk-release:host-sdk-noble-amd64-20260804/host-sdk-noble-amd64-20260804.tar.xz
+  ref: 8fc9db6a51633409728a5cb0caa3b0d9e9685e7167c15a2987b3da021eb94918
   base-dir: ""
