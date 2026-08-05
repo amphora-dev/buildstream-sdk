@@ -36,6 +36,6 @@ config:
     test -L "$bindir/llvm-strip"
     test -x "$bindir/aarch64-linux-android26-clang"
     test -x "$bindir/x86_64-linux-android28-clang"
-    test -x "$bindir/x86_64-linux-android35-clang"
+    test -x "$bindir/x86_64-linux-android30-clang"
 
   strip-commands: []

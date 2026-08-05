@@ -9,7 +9,7 @@ Shared, immutable BuildStream foundations for Amphora repositories.
 | `host/noble-amd64.bst` | GCC/G++, Autotools, CMake, Meson/Ninja, Python/Perl host SDK |
 | `toolchains/android-ndk-r29.bst` | Android NDK r29 at `/opt/android-ndk` |
 | `toolchains/llvm-mingw-20250920-ucrt.bst` | LLVM-MinGW UCRT at `/opt/llvm-mingw` |
-| `profiles/android-cross-files.bst` | Shared AArch64, x86_64/API35 and native Meson profiles |
+| `profiles/android-cross-files.bst` | Shared AArch64, x86_64/API30 and native Meson profiles |
 
 The host SDK Release is immutable:
 
